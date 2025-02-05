@@ -1,0 +1,19 @@
+{
+    "name": "attendance-backend",
+    "dependencies": {
+        "body-parser": "^1.x",
+        "cors": "^2.8.5",
+        "dotenv": "^16.x",
+        "express": "^4.x",
+        "mongoose": "^6.x",
+        "swagger-jsdoc": "^6.x",
+        "swagger-ui-express": "^4.x"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.9"
+    },
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js"
+    }
+}
