@@ -1,4 +1,5 @@
-const Schedule = require('../models/scheduleModel'); // Adjust the path as needed
+const Schedule = require('../models/scheduleModel');
+const mongoose = require('mongoose');
 
 // Helper function to convert time to 24-hour format (HH:MM)
 const convertTo24HourFormat = (time) => {
@@ -16,7 +17,8 @@ module.exports = {
   // Create a new schedule
   createSchedule: async (req, res) => {
     try {
-      let { sectionID, subjectID, teacherID, startTime, endTime, week, classMode, room } = req.body;
+      console.log(req.body)
+      let { sectionID, academicYear, quarter, subjectID, teacherID, startTime, endTime, week, classMode, room } = req.body;
 
       // Convert times to 24-hour format
       startTime = convertTo24HourFormat(startTime);
@@ -29,15 +31,15 @@ module.exports = {
           { room, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
           { teacherID, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } }
         ]
-      };
-
+      }; 
+ 
       const existingSchedule = await checkOverlappingSchedule(overlapFilter);
 
       if (existingSchedule) {
         return res.status(400).json({ message: 'Schedule conflict detected. Please adjust the schedule.' });
       }
 
-      const newSchedule = new Schedule({ sectionID, subjectID, teacherID, startTime, endTime, week, classMode, room });
+      const newSchedule = new Schedule({ sectionID, academicYear, quarter, subjectID, teacherID, startTime, endTime, week, classMode, room });
       await newSchedule.save();
 
       return res.status(201).json({ message: 'Schedule created successfully', schedule: newSchedule });
@@ -47,32 +49,40 @@ module.exports = {
     }
   },
 
-  // Read all schedules
-  getSchedules: async (req, res) => {
-    try {
-      const schedules = await Schedule.find()
-        .populate({
-          path: 'subjectID',
-          select: 'subjectName',
-        })
-        .populate({
-          path: 'teacherID',
-          select: 'name',
-        });
-
-      // Format schedules with subjectName and teacherName
-      const formattedSchedules = schedules.map((schedule) => ({
-        ...schedule._doc,
-        subjectName: schedule.subjectID?.subjectName || 'Unknown',
-        teacherName: schedule.teacherID?.name || 'Unknown',
-      }));
-
-      return res.status(200).json(formattedSchedules);
-    } catch (error) {
-      console.error('Error fetching schedules:', error);
-      return res.status(500).json({ message: 'Error fetching schedules', error });
-    }
-  },
+    // Read all schedules with filters
+    getSchedules: async (req, res) => {
+      try {
+        const { sectionID, academicYear, quarter } = req.query;
+        let filter = {};
+  
+        if (sectionID) filter.sectionID = mongoose.Types.ObjectId(sectionID);
+        if (academicYear) filter.academicYear = academicYear;
+        if (quarter) filter.quarter = quarter;
+  
+        const schedules = await Schedule.find(filter)
+          .populate({
+            path: 'subjectID',
+            select: 'subjectName',
+          })
+          .populate({
+            path: 'teacherID',
+            select: 'name',
+          });
+  
+        // Format schedules with subjectName and teacherName
+        const formattedSchedules = schedules.map((schedule) => ({
+          ...schedule._doc,
+          subjectName: schedule.subjectID?.subjectName || 'Unknown',
+          teacherName: schedule.teacherID?.name || 'Unknown',
+        }));
+  
+        return res.status(200).json(formattedSchedules);
+      } catch (error) {
+        console.error('Error fetching schedules:', error);
+        return res.status(500).json({ message: 'Error fetching schedules', error });
+      }
+    },
+  
 
   // Update a schedule
   updateSchedule: async (req, res) => {
