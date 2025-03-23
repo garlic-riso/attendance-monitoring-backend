@@ -1,11 +1,27 @@
 // src/controllers/sectionController.js
 const Section = require("../models/sectionModel");
+const Student = require("../models/studentModel");
 
 // Fetch all sections
 exports.getSections = async (req, res) => {
   try {
     const sections = await Section.find();
     res.status(200).json(sections);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getStudentsBySection = async (req, res) => {
+  try {
+    const { sectionId } = req.params;
+    const students = await Student.find({ sectionID: sectionId }).select("firstName lastName email");
+    
+    if (!students.length) {
+      return res.status(404).json({ message: "No students found for this section." });
+    }
+
+    res.status(200).json(students);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

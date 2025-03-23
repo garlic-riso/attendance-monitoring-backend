@@ -49,39 +49,33 @@ module.exports = {
     }
   },
 
-    // Read all schedules with filters
-    getSchedules: async (req, res) => {
-      try {
-        const { sectionID, academicYear, quarter } = req.query;
-        let filter = {};
-  
-        if (sectionID) filter.sectionID = mongoose.Types.ObjectId(sectionID);
-        if (academicYear) filter.academicYear = academicYear;
-        if (quarter) filter.quarter = quarter;
-  
-        const schedules = await Schedule.find(filter)
-          .populate({
-            path: 'subjectID',
-            select: 'subjectName',
-          })
-          .populate({
-            path: 'teacherID',
-            select: 'name',
-          });
-  
-        // Format schedules with subjectName and teacherName
+  // Read all schedules with filters
+  getSchedules: async (req, res) => {
+    try {
+      const { sectionID, academicYear, quarter } = req.query;
+      const filter = {};
+      if (sectionID) filter.sectionID = mongoose.Types.ObjectId(sectionID);
+      if (academicYear) filter.academicYear = academicYear;
+      if (quarter) filter.quarter = quarter;
+
+      const schedules = await Schedule.find(filter)
+        .populate("subjectID", "_id subjectName")
+        .populate("teacherID", "_id name");
+
         const formattedSchedules = schedules.map((schedule) => ({
-          ...schedule._doc,
-          subjectName: schedule.subjectID?.subjectName || 'Unknown',
-          teacherName: schedule.teacherID?.name || 'Unknown',
+          ...schedule.toObject(), // Convert Mongoose document to plain object
+          subjectID: schedule.subjectID?._id || schedule.subjectID,
+          subjectName: schedule.subjectID?.subjectName || "Unknown",
+          teacherID: schedule.teacherID?._id || schedule.teacherID,
+          teacherName: schedule.teacherID?.name || "Unknown",
         }));
-  
-        return res.status(200).json(formattedSchedules);
-      } catch (error) {
-        console.error('Error fetching schedules:', error);
-        return res.status(500).json({ message: 'Error fetching schedules', error });
-      }
-    },
+
+      return res.status(200).json(formattedSchedules);
+    } catch (error) {
+      console.error("Error fetching schedules:", error);
+      return res.status(500).json({ message: "Error fetching schedules", error });
+    }
+  },
   
 
   // Update a schedule

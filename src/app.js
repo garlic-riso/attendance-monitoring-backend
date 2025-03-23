@@ -10,6 +10,7 @@ const subjectRoutes = require('./routes/subjectRoutes');
 const defaultScheduleRoutes = require('./routes/defaultScheduleRoutes');
 const parentRoutes = require('./routes/parentRoutes');
 const studentRoutes = require('./routes/studentRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes');
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use('/api/subjects', subjectRoutes);
 app.use('/api/defaultSchedule', defaultScheduleRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/parents", parentRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 // Default route
 app.get("/", (req, res) => {
