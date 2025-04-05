@@ -4,6 +4,9 @@ const Faculty = require("../models/facultyModel");
 // Fetch all faculty members
 exports.getFaculties = async (req, res) => {
   try {
+    console.log("GET /api/teachers triggered");
+    console.log("Headers:", req.headers);
+    console.log("User:", req.user);
     const faculties = await Faculty.find();
     res.status(200).json(faculties);
   } catch (err) {
@@ -49,14 +52,28 @@ exports.deleteFaculty = async (req, res) => {
 
 // Bulk import faculty members
 exports.bulkImportFaculties = async (req, res) => {
-  try {
-    const { teachers } = req.body;
-    if (!Array.isArray(teachers) || teachers.length === 0) {
-      return res.status(400).json({ message: "Invalid or empty data provided." });
+  const records = req.body;
+  const errors = [];
+
+  for (let i = 0; i < records.length; i++) {
+    const { name, email, specialization } = records[i];
+    if (!name || !email || !specialization) {
+      errors.push("Missing required fields.");
+      continue;
     }
-    await Faculty.insertMany(teachers);
-    res.status(201).json({ message: "Faculty members imported successfully." });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+
+    try {
+      const faculty = new Faculty({ name, email, specialization });
+      await faculty.save();
+    } catch (err) {
+      errors.push(err.message || "Validation failed.");
+    }
   }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  res.status(200).json({ message: "Bulk import complete." });
 };
+

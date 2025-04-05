@@ -36,6 +36,11 @@ const parentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  role: {
+    type: String,
+    default: "Parent",
+    enum: ["Parent"],
+  },
 });
 
 const Parent = mongoose.model("Parent", parentSchema);

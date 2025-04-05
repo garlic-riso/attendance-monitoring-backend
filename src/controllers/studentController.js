@@ -4,11 +4,7 @@ const Student = require("../models/studentModel");
 exports.getStudents = async (req, res) => {
   try {
     const students = await Student.find()
-      .populate({
-        path: "parentID",
-        model: "Parent",
-        select: "firstName lastName",
-      })
+      .populate("parentID", "_id, firstName, lastName")
       .populate({
         path: "sectionID",
         model: "Section",
@@ -42,6 +38,61 @@ exports.createStudent = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
+// Bulk import students
+exports.bulkImportStudents = async (req, res) => {
+  try {
+    const students = req.body;
+
+    if (!Array.isArray(students) || students.length === 0) {
+      return res.status(400).json({ message: "No students provided for import." });
+    }
+
+    const requiredFields = [
+      "firstName",
+      "middleName",
+      "lastName",
+      "emailAddress",
+      "gender",
+      "program",
+      "status",
+      "dateEnrolled",
+      "parentID",
+      "sectionID"
+    ];
+
+    const invalidRows = [];
+
+    students.forEach((student, index) => {
+      const keys = Object.keys(student);
+      const missing = requiredFields.filter((field) => !keys.includes(field));
+      if (missing.length > 0) {
+        invalidRows.push({ row: index + 1, missingFields: missing });
+      }
+    });
+
+    if (invalidRows.length > 0) {
+      return res.status(400).json({
+        message: "Invalid column names or missing fields in some rows.",
+        errors: invalidRows,
+      });
+    }
+
+    const formattedStudents = students.map((student) => ({
+      ...student,
+      parentID: new mongoose.Types.ObjectId(student.parentID),
+      sectionID: new mongoose.Types.ObjectId(student.sectionID),
+    }));
+
+    const result = await Student.insertMany(formattedStudents);
+    res.status(201).json({ message: "Bulk import successful", insertedCount: result.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Bulk import failed", error: err.message });
+  }
+};
+
+
 
 // Update an existing student
 exports.updateStudent = async (req, res) => {

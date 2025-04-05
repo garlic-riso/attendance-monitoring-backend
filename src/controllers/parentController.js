@@ -21,6 +21,33 @@ exports.createParent = async (req, res) => {
   }
 };
 
+exports.bulkImportParents = async (req, res) => {
+  const records = req.body;
+  const errors = [];
+
+  for (let i = 0; i < records.length; i++) {
+    const { firstName, lastName, emailAddress, contactNumber } = records[i];
+    if (!firstName || !lastName || !emailAddress || !contactNumber) {
+      errors.push("Missing required fields.");
+      continue;
+    }
+
+    try {
+      const newParent = new Parent({ firstName, lastName, emailAddress, contactNumber });
+      await newParent.save();
+    } catch (err) {
+      errors.push(err.message || "Validation failed.");
+    }
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+
+  res.status(200).json({ message: "Bulk import complete." });
+};
+
+
 // Update an existing parent
 exports.updateParent = async (req, res) => {
   try {

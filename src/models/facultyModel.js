@@ -20,6 +20,11 @@ const facultySchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    role: {
+      type: String,
+      default: "Faculty",
+      enum: ["Faculty"],
+    },
   },
   { timestamps: true }
 );

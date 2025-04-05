@@ -7,10 +7,13 @@ const {
   deleteFaculty,
   bulkImportFaculties,
 } = require("../controllers/facultyController");
+const authenticate = require("../middlewares/authenticate");
+const authorize = require("../middlewares/authorize");
 
 const router = express.Router();
+router.use(authenticate);
 
-router.get("/", getFaculties);
+router.get("/", authorize(["admin", "faculty"]), getFaculties);
 router.post("/", createFaculty);
 router.put("/:id", updateFaculty);
 router.delete("/:id", deleteFaculty);
