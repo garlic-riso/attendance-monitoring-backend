@@ -17,7 +17,6 @@ module.exports = {
   // Create a new schedule
   createSchedule: async (req, res) => {
     try {
-      console.log(req.body)
       let { sectionID, academicYear, quarter, subjectID, teacherID, startTime, endTime, week, classMode, room } = req.body;
 
       // Convert times to 24-hour format

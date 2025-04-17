@@ -3,21 +3,23 @@ const Student = require("../models/studentModel");
 
 exports.getStudents = async (req, res) => {
   try {
-    const students = await Student.find()
-      .populate("parentID", "_id, firstName, lastName")
+    const onlyActive = req.query.active === "true";
+    const filter = onlyActive ? { isActive: true } : {};
+
+    const students = await Student.find(filter)
+      .populate("parentID", "_id firstName lastName")
       .populate({
         path: "sectionID",
         model: "Section",
         select: "grade name",
       });
 
-    // Format the response
     const formattedStudents = students.map(student => ({
       ...student.toObject(),
-      parent: student.parentID 
-        ? `${student.parentID.firstName} ${student.parentID.lastName}` 
+      parent: student.parentID
+        ? `${student.parentID.firstName} ${student.parentID.lastName}`
         : "N/A",
-      section: student.sectionID 
+      section: student.sectionID
         ? `Grade ${student.sectionID.grade} - ${student.sectionID.name}`
         : "N/A",
     }));
@@ -28,10 +30,14 @@ exports.getStudents = async (req, res) => {
   }
 };
 
+
 // Create a new student
 exports.createStudent = async (req, res) => {
   try {
-    const newStudent = new Student(req.body);
+    const newStudent = new Student({
+      ...req.body,
+      isActive: req.body.isActive ?? true
+    });
     await newStudent.save();
     res.status(201).json(newStudent);
   } catch (err) {
@@ -55,7 +61,7 @@ exports.bulkImportStudents = async (req, res) => {
       "emailAddress",
       "gender",
       "program",
-      "status",
+      "isActive",
       "dateEnrolled",
       "parentID",
       "sectionID"
@@ -80,6 +86,7 @@ exports.bulkImportStudents = async (req, res) => {
 
     const formattedStudents = students.map((student) => ({
       ...student,
+      isActive: student.isActive ?? true,
       parentID: new mongoose.Types.ObjectId(student.parentID),
       sectionID: new mongoose.Types.ObjectId(student.sectionID),
     }));
@@ -109,7 +116,6 @@ exports.updateStudent = async (req, res) => {
     if (!updatedStudent) return res.status(404).json({ message: "Student not found" });
     res.json(updatedStudent);
   } catch (err) {
-    console.log(err);
     res.status(400).json({ message: err.message });
   }
 };

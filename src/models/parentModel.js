@@ -27,10 +27,9 @@ const parentSchema = new mongoose.Schema({
     match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"],
     trim: true,
   },
-  status: {
-    type: String,
-    enum: ["Active", "Inactive"],
-    default: "Active",
+  isActive: {
+    type: Boolean,
+    default: true,
   },
   createdAt: {
     type: Date,

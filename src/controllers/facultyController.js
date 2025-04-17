@@ -4,10 +4,8 @@ const Faculty = require("../models/facultyModel");
 // Fetch all faculty members
 exports.getFaculties = async (req, res) => {
   try {
-    console.log("GET /api/teachers triggered");
-    console.log("Headers:", req.headers);
-    console.log("User:", req.user);
-    const faculties = await Faculty.find();
+    const filter = req.query.active === "true" ? { isActive: true } : {};
+    const faculties = await Faculty.find(filter);
     res.status(200).json(faculties);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -39,16 +37,6 @@ exports.updateFaculty = async (req, res) => {
   }
 };
 
-// Delete a faculty member
-exports.deleteFaculty = async (req, res) => {
-  try {
-    const deletedFaculty = await Faculty.findByIdAndDelete(req.params.id);
-    if (!deletedFaculty) return res.status(404).json({ message: "Faculty not found" });
-    res.status(204).end();
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
 
 // Bulk import faculty members
 exports.bulkImportFaculties = async (req, res) => {

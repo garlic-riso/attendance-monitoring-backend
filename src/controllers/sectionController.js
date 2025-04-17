@@ -5,7 +5,9 @@ const Student = require("../models/studentModel");
 // Fetch all sections
 exports.getSections = async (req, res) => {
   try {
-    const sections = await Section.find();
+    const onlyActive = req.query.active === "true";
+    const filter = onlyActive ? { isActive: true } : {};
+    const sections = await Section.find(filter);
     res.status(200).json(sections);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -15,12 +17,8 @@ exports.getSections = async (req, res) => {
 exports.getStudentsBySection = async (req, res) => {
   try {
     const { sectionId } = req.params;
-    const students = await Student.find({ sectionID: sectionId }).select("firstName lastName email");
+    const students = await Student.find({ sectionID: sectionId }).select("firstName lastName emailAddress");
     
-    if (!students.length) {
-      return res.status(404).json({ message: "No students found for this section." });
-    }
-
     res.status(200).json(students);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -39,6 +37,53 @@ exports.createSection = async (req, res) => {
   }
 };
 
+exports.bulkImportSections = async (req, res) => {
+  try {
+    const sections = req.body;
+    if (!Array.isArray(sections) || sections.length === 0) {
+      return res.status(400).json({ message: "No data provided for import." });
+    }
+
+    const errors = [];
+    const sectionsToInsert = [];
+
+    for (let i = 0; i < sections.length; i++) {
+      const entry = sections[i];
+      const name = entry.name?.trim();
+      const grade = entry.grade;
+
+      if (!name || grade === undefined || grade === null) {
+        errors.push(`Row ${i + 2}: Missing name or grade.`);
+        continue;
+      }
+
+      const exists = await Section.findOne({ name, grade });
+      if (exists) {
+        errors.push(`Row ${i + 2}: Duplicate section (${name}, Grade ${grade}) already exists.`);
+        continue;
+      }
+
+      sectionsToInsert.push({
+        name,
+        grade
+      });
+    }
+
+    if (sectionsToInsert.length > 0) {
+      await Section.insertMany(sectionsToInsert);
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({ message: "Some entries failed.", errors });
+    }
+
+    res.status(201).json({ message: "All sections imported successfully." });
+  } catch (err) {
+    res.status(500).json({ message: "Bulk import failed.", error: err.message });
+  }
+};
+
+
 // Update an existing section
 exports.updateSection = async (req, res) => {
   try {
@@ -52,13 +97,3 @@ exports.updateSection = async (req, res) => {
   }
 };
 
-// Delete a section
-exports.deleteSection = async (req, res) => {
-  try {
-    const deletedSection = await Section.findByIdAndDelete(req.params.id);
-    if (!deletedSection) return res.status(404).json({ message: "Section not found" });
-    res.status(204).end();
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};

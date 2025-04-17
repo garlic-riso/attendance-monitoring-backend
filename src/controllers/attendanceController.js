@@ -55,7 +55,12 @@ exports.getAttendanceData = async (req, res) => {
     }
 
     const students = await Student.aggregate([
-      { $match: { sectionID: new mongoose.Types.ObjectId(sectionID) } },
+      {
+        $match: {
+          sectionID: new mongoose.Types.ObjectId(sectionID),
+          isActive: true, // Only include active students
+        },
+      },
       {
         $lookup: {
           from: "attendances",
@@ -98,9 +103,7 @@ exports.getAttendanceData = async (req, res) => {
       },
     ]);
 
-    res.json({
-      students,
-    });
+    res.json({ students });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });

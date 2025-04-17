@@ -14,10 +14,9 @@ const subjectSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  status: {
-    type: String,
-    enum: ['Active', 'Inactive'],
-    default: 'Active',
+  isActive: {
+    type: Boolean,
+    default: true,
   },
   dateCreated: {
     type: Date,

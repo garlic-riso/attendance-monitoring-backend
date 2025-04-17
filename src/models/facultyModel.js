@@ -3,10 +3,6 @@ const mongoose = require("mongoose");
 
 const facultySchema = new mongoose.Schema(
   {
-    teacherID: {
-      type: mongoose.Schema.Types.ObjectId,
-      auto: true,
-    },
     name: {
       type: String,
       required: true,
@@ -24,6 +20,10 @@ const facultySchema = new mongoose.Schema(
       type: String,
       default: "Faculty",
       enum: ["Faculty"],
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   { timestamps: true }

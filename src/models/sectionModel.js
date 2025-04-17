@@ -2,11 +2,6 @@
 const mongoose = require("mongoose");
 
 const sectionSchema = new mongoose.Schema({
-  sectionId: {
-    type: String,
-    required: true,
-    unique: true,
-  },
   name: {
     type: String,
     required: true,
@@ -14,6 +9,10 @@ const sectionSchema = new mongoose.Schema({
   grade: {
     type: Number,
     required: true,
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
   },
 }, { timestamps: true });
 

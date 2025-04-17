@@ -25,10 +25,9 @@ const studentSchema = new mongoose.Schema({
     enum: ["Male", "Female", "Other"],
     required: [true, "Gender is required"],
   },
-  status: {
-    type: String,
-    enum: ["Active", "Inactive"],
-    default: "Active",
+  isActive: {
+    type: Boolean,
+    default: true,
   },
   dateEnrolled: {
     type: Date,
