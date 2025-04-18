@@ -75,6 +75,82 @@ module.exports = {
       return res.status(500).json({ message: "Error fetching schedules", error });
     }
   },
+
+  importSchedules: async (req, res) => {
+    const { sectionID, academicYear, quarter, schedules } = req.body;
+  
+    if (!Array.isArray(schedules)) {
+      return res.status(400).json({ message: "Invalid data format." });
+    }
+  
+    try {
+      const [teachers, subjects, Section] = await Promise.all([
+        require('../models/facultyModel').find().lean(),
+        require('../models/subjectModel').find().lean(),
+        require('../models/sectionModel').findById(sectionID).lean(),
+      ]);
+  
+      if (!Section || !Section.isActive) {
+        return res.status(400).json({ message: "Inactive or missing section." });
+      }
+  
+      let successCount = 0;
+      let errorCount = 0;
+  
+      for (const r of schedules) {
+        try {
+          const teacher = teachers.find(t => t.name.trim() === r.Teacher?.trim());
+          const subject = subjects.find(s => s.subjectName.trim() === r.Subject?.trim());
+  
+          if (!teacher || !subject || !teacher.isActive) {
+            errorCount++;
+            continue;
+          }
+  
+          const startTime = convertTo24HourFormat(r["Start Time"]);
+          const endTime = convertTo24HourFormat(r["End Time"]);
+  
+          const overlapFilter = {
+            $or: [
+              { sectionID, week: r.Day, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
+              { room: r.Room, week: r.Day, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
+              { teacherID: teacher._id, week: r.Day, startTime: { $lt: endTime }, endTime: { $gt: startTime } }
+            ]
+          };
+  
+          const conflict = await checkOverlappingSchedule(overlapFilter);
+          if (conflict) {
+            errorCount++;
+            continue;
+          }
+  
+          await Schedule.create({
+            sectionID,
+            academicYear,
+            quarter,
+            subjectID: subject._id,
+            teacherID: teacher._id,
+            startTime,
+            endTime,
+            week: r.Day,
+            classMode: r["Class Mode"],
+            room: r.Room,
+          });
+  
+          successCount++;
+        } catch {
+          errorCount++;
+        }
+      }
+  
+      return res.status(200).json({ successCount, errorCount });
+    } catch (error) {
+      console.error("Import error:", error);
+      return res.status(500).json({ message: "Failed to import schedules", error: error.message });
+    }
+  },
+  
+  
   
 
   // Update a schedule
