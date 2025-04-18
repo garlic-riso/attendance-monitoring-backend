@@ -2,9 +2,19 @@
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
-  name: {
+  firstName: {
     type: String,
-    required: [true, "Name is required"],
+    required: [true, "First name is required"],
+    trim: true,
+  },
+  middleName: {
+    type: String,
+    default: "",
+    trim: true,
+  },
+  lastName: {
+    type: String,
+    required: [true, "Last name is required"],
     trim: true,
   },
   email: {
@@ -17,6 +27,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ["Admin"],
     default: "Admin",
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
   },
   createdAt: {
     type: Date,

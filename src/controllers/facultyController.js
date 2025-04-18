@@ -15,8 +15,8 @@ exports.getFaculties = async (req, res) => {
 // Create a new faculty member
 exports.createFaculty = async (req, res) => {
   try {
-    const { name, email, specialization } = req.body;
-    const faculty = new Faculty({ name, email, specialization });
+    const { firstName, middleName = "", lastName, email, specialization } = req.body;
+    const faculty = new Faculty({ firstName, middleName, lastName, email, specialization });
     await faculty.save();
     res.status(201).json(faculty);
   } catch (err) {
@@ -44,14 +44,14 @@ exports.bulkImportFaculties = async (req, res) => {
   const errors = [];
 
   for (let i = 0; i < records.length; i++) {
-    const { name, email, specialization } = records[i];
-    if (!name || !email || !specialization) {
+    const { firstName, middleName = "", lastName, email, specialization } = records[i];
+    if (!firstName || !lastName || !email || !specialization) {
       errors.push("Missing required fields.");
       continue;
     }
 
     try {
-      const faculty = new Faculty({ name, email, specialization });
+      const faculty = new Faculty({ firstName, middleName, lastName, email, specialization });
       await faculty.save();
     } catch (err) {
       errors.push(err.message || "Validation failed.");

@@ -35,6 +35,7 @@ exports.googleLogin = async (req, res) => {
         id: foundUser._id,
         email: foundUser.email || foundUser.emailAddress,
         role: foundUser.role || "student", // Assume default role if not present
+        name: foundUser.firstName + " " + foundUser.lastName || "User"
       };
   
       const accessToken = jwt.sign(jwtPayload, JWT_SECRET, { expiresIn: "1d" });

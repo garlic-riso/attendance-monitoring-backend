@@ -4,7 +4,12 @@ const User = require("../models/userModel");
 // Fetch all users
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find();
+    const filter = req.query.active === "true"
+      ? { isActive: true }
+      : req.query.active === "false"
+      ? { isActive: false }
+      : {};
+    const users = await User.find(filter);
     res.status(200).json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -14,7 +19,8 @@ exports.getUsers = async (req, res) => {
 // Create a new user
 exports.createUser = async (req, res) => {
   try {
-    const newUser = new User(req.body);
+    const { firstName, middleName = "", lastName, email, role } = req.body;
+    const newUser = new User({ firstName, middleName, lastName, email, role });
     await newUser.save();
     res.status(201).json(newUser);
   } catch (err) {
@@ -35,13 +41,4 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-// Delete a user
-exports.deleteUser = async (req, res) => {
-  try {
-    const deletedUser = await User.findByIdAndDelete(req.params.id);
-    if (!deletedUser) return res.status(404).json({ message: "User not found" });
-    res.status(204).end();
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+
