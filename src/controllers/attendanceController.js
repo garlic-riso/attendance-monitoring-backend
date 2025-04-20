@@ -5,36 +5,6 @@ const Subject = require("../models/subjectModel");
 const Attendance = require("../models/attendanceModel");
 const Schedule = require("../models/scheduleModel");
 
-// exports.getAttendanceData = async (req, res) => {
-//   try {
-//     const { sectionID, subjectID, date } = req.query;
-//     if (!sectionID || !subjectID || !date) {
-//       return res.status(400).json({ message: "Missing required filters" });
-//     }
-
-//     const students = await Student.find({ sectionID }).select("firstName lastName sectionID");
-//     if (!students.length) {
-//       return res.status(404).json({ message: "No students found for this section" });
-//     }
-
-//     const dayOfWeek = new Date(date).toLocaleDateString("en-US", { weekday: "long" });
-//     const schedule = await Schedule.findOne({
-//       sectionID,
-//       subjectID,
-//       week: dayOfWeek,
-//     });
-
-//     if (!schedule) {
-//       return res.status(404).json({ message: "No schedule found for this date" });
-//     }
-
-//     res.json({ students, schedule });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
 exports.getAttendanceData = async (req, res) => {
   try {
     const { sectionID, subjectID, date } = req.query;

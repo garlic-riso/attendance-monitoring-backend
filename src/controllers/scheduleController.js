@@ -24,13 +24,18 @@ module.exports = {
       endTime = convertTo24HourFormat(endTime);
 
       // Check for overlapping schedules
+      // This checks for: Room conflicts, Teacher double-booking,
+      // Section time collisions (across all sections),
+      // All within the same academicYear and quarter
       const overlapFilter = {
+        academicYear,
+        quarter,
         $or: [
           { sectionID, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
           { room, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
           { teacherID, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } }
         ]
-      }; 
+      };
  
       const existingSchedule = await checkOverlappingSchedule(overlapFilter);
 
@@ -59,14 +64,16 @@ module.exports = {
 
       const schedules = await Schedule.find(filter)
         .populate("subjectID", "_id subjectName")
-        .populate("teacherID", "_id name");
+        .populate("teacherID", "_id firstName lastName");
 
         const formattedSchedules = schedules.map((schedule) => ({
           ...schedule.toObject(), // Convert Mongoose document to plain object
           subjectID: schedule.subjectID?._id || schedule.subjectID,
           subjectName: schedule.subjectID?.subjectName || "Unknown",
           teacherID: schedule.teacherID?._id || schedule.teacherID,
-          teacherName: schedule.teacherID?.name || "Unknown",
+          teacherName: schedule.teacherID
+            ? `${schedule.teacherID.firstName} ${schedule.teacherID.lastName}`
+            : "Unknown",
         }));
 
       return res.status(200).json(formattedSchedules);
@@ -110,11 +117,17 @@ module.exports = {
           const startTime = convertTo24HourFormat(r["Start Time"]);
           const endTime = convertTo24HourFormat(r["End Time"]);
   
+          // Check for overlapping schedules
+          // This checks for: Room conflicts, Teacher double-booking,
+          // Section time collisions (across all sections),
+          // All within the same academicYear and quarter
           const overlapFilter = {
+            academicYear,
+            quarter,
             $or: [
-              { sectionID, week: r.Day, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
-              { room: r.Room, week: r.Day, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
-              { teacherID: teacher._id, week: r.Day, startTime: { $lt: endTime }, endTime: { $gt: startTime } }
+              { sectionID, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
+              { room, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
+              { teacherID, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } }
             ]
           };
   
@@ -149,26 +162,28 @@ module.exports = {
       return res.status(500).json({ message: "Failed to import schedules", error: error.message });
     }
   },
-  
-  
-  
 
   // Update a schedule
   updateSchedule: async (req, res) => {
     try {
       const { id } = req.params;
-      let { sectionID, subjectID, teacherID, startTime, endTime, week, classMode, room } = req.body;
+      let { sectionID, subjectID, teacherID, startTime, endTime, week, classMode, room, academicYear, quarter } = req.body;
 
       // Convert times to 24-hour format
       startTime = convertTo24HourFormat(startTime);
       endTime = convertTo24HourFormat(endTime);
 
       // Check for overlapping schedules
+      // This checks for: Room conflicts, Teacher double-booking,
+      // Section time collisions (across all sections),
+      // All within the same academicYear and quarter
       const overlapFilter = {
+        academicYear,
+        quarter,
         $or: [
-          { sectionID, week, startTime: { $lt: endTime }, endTime: { $gt: startTime }, _id: { $ne: id } },
-          { room, week, startTime: { $lt: endTime }, endTime: { $gt: startTime }, _id: { $ne: id } },
-          { teacherID, week, startTime: { $lt: endTime }, endTime: { $gt: startTime }, _id: { $ne: id } }
+          { sectionID, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
+          { room, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
+          { teacherID, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } }
         ]
       };
 
