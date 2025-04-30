@@ -12,6 +12,8 @@ const parentRoutes = require('./routes/parentRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const loginRoutes = require('./routes/loginRoutes');
+const settingsRoutes = require("./routes/settingsRoutes");
+const schoolYearRoutes = require("./routes/schoolYearRoutes");
 
 require("dotenv").config();
 const app = express();
@@ -39,6 +41,8 @@ app.use("/api/students", studentRoutes);
 app.use("/api/parents", parentRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/auth", loginRoutes);
+app.use("/api/settings", settingsRoutes);
+app.use("/api/school-years", schoolYearRoutes);
 
 // Default route
 app.get("/", (req, res) => {
