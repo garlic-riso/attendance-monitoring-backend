@@ -1,14 +1,13 @@
 const express = require("express");
+const settingsController = require("../controllers/settingsController");
+
+const authenticate = require("../middlewares/authenticate");
+const authorize = require("../middlewares/authorize");
 const router = express.Router();
-const settingsController = require("../controllers/settingsController"); // adjust the path
+router.use(authenticate);
 
-// GET current settings
-router.get("/", settingsController.getSettings);
-
-// POST create settings (usually only used once)
-router.post("/", settingsController.createSettings);
-
-// PUT update settings
-router.put("/", settingsController.updateSettings);
+router.get("/", authorize(["admin", "faculty", "student", "parent"]), settingsController.getSettings);
+router.post("/", authorize(["admin"]), settingsController.createSettings);
+router.put("/", authorize(["admin"]), settingsController.updateSettings);
 
 module.exports = router;

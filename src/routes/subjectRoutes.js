@@ -1,13 +1,17 @@
 const express = require('express');
+const subjectController = require('../controllers/subjectController');
+
+const authenticate = require("../middlewares/authenticate");
+const authorize = require("../middlewares/authorize");
 const router = express.Router();
-const subjectController = require('../controllers/subjectController'); // Adjust path as needed
+router.use(authenticate);
 
 // CRUD routes for Subject
-router.post('/', subjectController.createSubject); // Create a subject
-router.get('/', subjectController.getAllSubjects); // Get all subjects
-router.get('/:id', subjectController.getSubjectById); // Get a subject by ID
-router.put('/:id', subjectController.updateSubject); // Update a subject by ID
-router.post("/bulk-import", subjectController.bulkImportSubjects);
+router.get('/', authorize(["admin", "faculty", "student", "parent"]), subjectController.getAllSubjects); // Get all subjects
+router.post('/', authorize(["admin"]), subjectController.createSubject); // Create a subject
+router.get('/:id', authorize(["admin", "faculty", "student", "parent"]), subjectController.getSubjectById); // Get a subject by ID
+router.put('/:id', authorize(["admin"]), subjectController.updateSubject); // Update a subject by ID
+router.post("/bulk-import", authorize(["admin"]), subjectController.bulkImportSubjects);
 
 
 module.exports = router;

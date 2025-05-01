@@ -8,13 +8,16 @@ const {
   bulkImportSections,
 } = require("../controllers/sectionController");
 
+const authenticate = require("../middlewares/authenticate");
+const authorize = require("../middlewares/authorize");
 const router = express.Router();
+router.use(authenticate);
 
-router.get("/", getSections);
-router.post("/", createSection);
-router.put("/:id", updateSection);
-router.get("/:sectionId/students", getStudentsBySection);
-router.post("/bulk-import", bulkImportSections);
+router.get("/", authorize(["admin", "faculty", "student", "parent"]), getSections);
+router.post("/", authorize(["admin"]), createSection);
+router.put("/:id", authorize(["admin"]), updateSection);
+router.get("/:sectionId/students", authorize(["admin", "faculty", "student", "parent"]), getStudentsBySection);
+router.post("/bulk-import", authorize(["admin"]), bulkImportSections);
 
 
 module.exports = router;

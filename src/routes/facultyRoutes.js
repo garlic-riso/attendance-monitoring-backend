@@ -12,9 +12,9 @@ const authorize = require("../middlewares/authorize");
 const router = express.Router();
 router.use(authenticate);
 
-router.get("/", authorize(["admin", "faculty"]), getFaculties);
-router.post("/", createFaculty);
-router.put("/:id", updateFaculty);
-router.post("/bulk-import", bulkImportFaculties);
+router.get("/", authorize(["admin", "faculty", "student", "parent"]), getFaculties);
+router.post("/", authorize(["admin", "faculty"]), createFaculty);
+router.put("/:id", authorize(["admin", "faculty"]), updateFaculty);
+router.post("/bulk-import", authorize(["admin", "faculty"]), bulkImportFaculties);
 
 module.exports = router;
