@@ -80,6 +80,45 @@ exports.getAttendanceData = async (req, res) => {
   }
 };
 
+exports.getStudentAttendanceByDateRange = async (req, res) => {
+  try {
+    const { studentID, startDate, endDate } = req.query;
+
+    if (!studentID || !startDate || !endDate) {
+      return res.status(400).json({ message: "Missing required filters" });
+    }
+
+    const attendance = await Attendance.find({
+      studentID,
+      date: { $gte: new Date(startDate), $lte: new Date(endDate) },
+    })
+    .populate({
+      path: "scheduleID",
+      select: "classMode subjectID",
+      populate: {
+        path: "subjectID",
+        select: "subjectName",
+        model: "Subject",
+      },
+    })
+    
+    
+
+    console.log("Populated Attendance Data:", attendance); // Debugging log
+
+    const response = attendance.map((record) => ({
+      ...record.toObject(),
+      classMode: record.scheduleID?.classMode || "N/A",
+      subject: record.scheduleID?.subjectID?.subjectName || "N/A",
+    }));
+
+    res.json(response);
+  } catch (err) {
+    console.error("Error fetching student attendance:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 
 exports.createAttendance = async (req, res) => {
   try {
@@ -102,6 +141,108 @@ exports.createAttendance = async (req, res) => {
     res.status(500).json({ message: "Failed to create attendance" });
   }
 };
+
+exports.getDailySummary = async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) return res.status(400).json({ message: "Missing date" });
+
+    const dayStart = new Date(date);
+    dayStart.setUTCHours(0, 0, 0, 0);
+
+    const dayEnd = new Date(dayStart);
+    dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+
+    const summary = await Attendance.aggregate([
+      {
+        $match: {
+          date: { $gte: dayStart, $lt: dayEnd },
+        },
+      },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const result = {
+      Present: 0,
+      Absent: 0,
+      Tardy: 0,
+      Excused: 0,
+    };
+
+    summary.forEach(({ _id, count }) => {
+      result[_id] = count;
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to get daily summary" });
+  }
+};
+
+exports.getTopAbsentees = async (req, res) => {
+  try {
+    const { startDate, endDate, limit = 10 } = req.query;
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: "Missing date range" });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const absences = await Attendance.aggregate([
+      {
+        $match: {
+          status: "Absent",
+          date: { $gte: start, $lte: end },
+        },
+      },
+      {
+        $group: {
+          _id: "$studentID",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { count: -1 },
+      },
+      {
+        $limit: parseInt(limit),
+      },
+      {
+        $lookup: {
+          from: "students",
+          localField: "_id",
+          foreignField: "_id",
+          as: "student",
+        },
+      },
+      {
+        $unwind: "$student",
+      },
+      {
+        $project: {
+          studentID: "$_id",
+          fullName: {
+            $concat: ["$student.lastName", ", ", "$student.firstName"],
+          },
+          count: 1,
+        },
+      },
+    ]);
+
+    res.json(absences);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to get top absentees" });
+  }
+};
+
 
 exports.updateAttendance = async (req, res) => {
   try {

@@ -30,6 +30,28 @@ exports.getStudents = async (req, res) => {
   }
 };
 
+// GET /api/students/by-parent?parentID=xxx
+exports.getStudentsByParent = async (req, res) => {
+  try {
+    const { parentID } = req.query;
+
+    if (!parentID) {
+      return res.status(400).json({ message: "Missing parentID" });
+    }
+
+    const students = await Student.find({
+      parentID,
+      isActive: true,
+    }).select("_id firstName lastName");
+
+    res.json(students);
+  } catch (error) {
+    console.error("Failed to fetch students by parent:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 
 // Create a new student
 exports.createStudent = async (req, res) => {
