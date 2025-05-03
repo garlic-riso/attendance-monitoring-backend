@@ -101,10 +101,6 @@ exports.getStudentAttendanceByDateRange = async (req, res) => {
         model: "Subject",
       },
     })
-    
-    
-
-    console.log("Populated Attendance Data:", attendance); // Debugging log
 
     const response = attendance.map((record) => ({
       ...record.toObject(),

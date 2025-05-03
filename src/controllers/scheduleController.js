@@ -55,16 +55,18 @@ module.exports = {
 
   // Read all schedules with filters
   getSchedules: async (req, res) => {
-    try {
-      const { sectionID, academicYear, quarter } = req.query;
+    try { 
+      const { sectionID, academicYear, quarter, teacherID } = req.query;
       const filter = {};
       if (sectionID) filter.sectionID = mongoose.Types.ObjectId(sectionID);
+      if (teacherID) filter.teacherID = mongoose.Types.ObjectId(teacherID);
       if (academicYear) filter.academicYear = academicYear;
       if (quarter) filter.quarter = quarter;
 
       const schedules = await Schedule.find(filter)
         .populate("subjectID", "_id subjectName")
-        .populate("teacherID", "_id firstName lastName");
+        .populate("teacherID", "_id firstName lastName")
+        .populate("sectionID", "_id name grade");
 
         const formattedSchedules = schedules.map((schedule) => ({
           ...schedule.toObject(), // Convert Mongoose document to plain object
@@ -173,11 +175,9 @@ module.exports = {
       startTime = convertTo24HourFormat(startTime);
       endTime = convertTo24HourFormat(endTime);
 
-      // Check for overlapping schedules
-      // This checks for: Room conflicts, Teacher double-booking,
-      // Section time collisions (across all sections),
-      // All within the same academicYear and quarter
-      const overlapFilter = {
+      // Exclude the current schedule from conflict check
+      const existingSchedule = await Schedule.findOne({
+        _id: { $ne: id },
         academicYear,
         quarter,
         $or: [
@@ -185,9 +185,7 @@ module.exports = {
           { room, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
           { teacherID, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } }
         ]
-      };
-
-      const existingSchedule = await checkOverlappingSchedule(overlapFilter);
+      });
 
       if (existingSchedule) {
         return res.status(400).json({ message: 'Schedule conflict detected. Please adjust the schedule.' });
@@ -205,6 +203,7 @@ module.exports = {
       return res.status(500).json({ message: 'Error updating schedule', error });
     }
   },
+
 
   // Delete a schedule
   deleteSchedule: async (req, res) => {
