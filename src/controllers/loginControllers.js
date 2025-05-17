@@ -24,8 +24,12 @@ exports.googleLogin = async (req, res) => {
       const parent = await Parent.findOne({ emailAddress: email });
       const faculty = await Faculty.findOne({ email });
       const user = await User.findOne({ email });
+
+      console.log("Email :", email);
   
       const foundUser = student || parent || faculty || user;
+
+      console.log("Found User :", foundUser);
   
       if (!foundUser) {
         return res.status(401).json({ success: false, message: "Email not registered" });
