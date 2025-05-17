@@ -22,10 +22,14 @@ const app = express();
 app.use(express.json());
 
 // Enable CORS
+// app.use(cors({
+//     origin: 'http://localhost:3001', // Replace with your frontend URL
+//     credentials: true, // If you use cookies or authentication
+// }));
+
 app.use(cors({
-    origin: 'http://localhost:3001', // Replace with your frontend URL
-    credentials: true, // If you use cookies or authentication
-}));
+    origin: '*',
+  }));
 
 // Database Connection
 connectDB();
