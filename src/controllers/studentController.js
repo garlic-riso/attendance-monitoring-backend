@@ -30,6 +30,18 @@ exports.getStudents = async (req, res) => {
   }
 };
 
+// GET /api/students/unassigned
+// This endpoint fetches all students who are not assigned to any section
+exports.getUnassignedStudents = async (req, res) => {
+  try {
+    const students = await Student.find({ sectionID: null }).select("firstName lastName _id");
+    res.json(students);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch unassigned students." });
+  }
+};
+
+
 // GET /api/students/by-parent?parentID=xxx
 exports.getStudentsByParent = async (req, res) => {
   try {
@@ -66,6 +78,25 @@ exports.createStudent = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
+// PUT /api/students/:id/assign
+exports.assignSection = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { sectionID } = req.body;
+
+    const student = await Student.findById(id);
+    if (!student) return res.status(404).json({ message: "Student not found." });
+
+    student.sectionID = sectionID;
+    await student.save();
+
+    res.json({ message: "Student assigned to section." });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to assign student.", error: err.message });
+  }
+};
+
 
 // Bulk import students
 exports.bulkImportStudents = async (req, res) => {

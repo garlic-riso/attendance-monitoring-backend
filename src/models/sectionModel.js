@@ -14,7 +14,14 @@ const sectionSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  advisorID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Faculty",
+    required: false, // optional
+  }
 }, { timestamps: true });
+
+sectionSchema.index({ name: 1}, { unique: true });
 
 const Section = mongoose.model("Section", sectionSchema);
 

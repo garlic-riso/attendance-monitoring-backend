@@ -6,6 +6,8 @@ const {
   deleteStudent,
   bulkImportStudents,
   getStudentsByParent,
+  getUnassignedStudents,
+  assignSection,
 } = require("../controllers/studentController");
 
 const authenticate = require("../middlewares/authenticate");
@@ -19,5 +21,7 @@ router.put("/:id", authorize(["admin", "faculty"]), updateStudent);
 router.delete("/:id", authorize(["admin", "faculty"]), deleteStudent);
 router.post("/bulk-import", authorize(["admin", "faculty"]), bulkImportStudents);
 router.get("/by-parent", getStudentsByParent);
+router.get("/unassigned", authorize(["admin", "faculty"]), getUnassignedStudents);
+router.put("/:id/assign", authorize(["admin", "faculty"]), assignSection);
 
 module.exports = router;

@@ -23,12 +23,12 @@ const scheduleSchema = new mongoose.Schema({
   startTime: {
     type: String,
     required: true,
-    match: /^([01]\d|2[0-3]):([0-5]\d)$/ // Ensures 24-hour format HH:MM
+    match: /^([01]\d|2[0-3]):([0-5]\d)$/, // Ensures 24-hour format HH:MM
   },
   endTime: {
     type: String,
     required: true,
-    match: /^([01]\d|2[0-3]):([0-5]\d)$/ // Ensures 24-hour format HH:MM
+    match: /^([01]\d|2[0-3]):([0-5]\d)$/, // Ensures 24-hour format HH:MM
   },
   week: {
     type: String,
@@ -36,11 +36,18 @@ const scheduleSchema = new mongoose.Schema({
   },
   classMode: {
     type: String,
-    enum: ['Online', 'Face-to-Face', 'Hybrid'],
+    enum: ['Online', 'Face-to-Face', 'Homeschooling'],
     required: true,
   },
   room: {
     type: String,
+    validate: {
+      validator: function (value) {
+        // Room is optional for 'Online' or 'Homeschooling' modes
+        return this.classMode === 'Online' || this.classMode === 'Homeschooling' || !!value;
+      },
+      message: 'Room is required for Face-to-Face mode.',
+    },
     default: null,
   },
   academicYear: {

@@ -15,11 +15,6 @@ const studentSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
-  sectionID: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Section",
-    required: [true, "Section ID is required"],
-  },
   gender: {
     type: String,
     enum: ["Male", "Female", "Other"],
@@ -58,6 +53,11 @@ const studentSchema = new mongoose.Schema({
     type: String,
     default: "Student",
     enum: ["Student"],
+  },
+  sectionID: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Section",
+  required: false, // make it optional
   },
 });
 

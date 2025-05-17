@@ -38,9 +38,15 @@ exports.bulkImportParents = async (req, res) => {
       errors.push("Missing required fields.");
       continue;
     }
+    const contact = String(records[i].contactNumber).padStart(11, "0");
 
     try {
-      const newParent = new Parent({ firstName, lastName, emailAddress, contactNumber });
+      const newParent = new Parent({
+        firstName,
+        lastName,
+        emailAddress,
+        contactNumber: contact,
+      });
       await newParent.save();
     } catch (err) {
       errors.push(err.message || "Validation failed.");

@@ -28,11 +28,14 @@ exports.getStudentsBySection = async (req, res) => {
 // Create a new section
 exports.createSection = async (req, res) => {
   try {
-    const { sectionId, name, grade } = req.body;
-    const newSection = new Section({ sectionId, name, grade });
+    const { sectionId, name, grade, advisorID } = req.body;
+    const newSection = new Section({ sectionId, name, grade, advisorID });
     await newSection.save();
     res.status(201).json(newSection);
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "Duplicate section name." });
+    }    
     res.status(400).json({ message: err.message });
   }
 };
@@ -84,16 +87,71 @@ exports.bulkImportSections = async (req, res) => {
 };
 
 
-// Update an existing section
 exports.updateSection = async (req, res) => {
   try {
-    const updatedSection = await Section.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-    if (!updatedSection) return res.status(404).json({ message: "Section not found" });
+    const { name, grade } = req.body;
+    const { id } = req.params;
+
+    const duplicate = await Section.findOne({ name, grade, _id: { $ne: id } });
+    if (duplicate) {
+      return res.status(400).json({ message: "Duplicate section name and grade combination." });
+    }
+
+    const updatedSection = await Section.findByIdAndUpdate(id, req.body, { new: true });
+
+    if (!updatedSection) {
+      return res.status(404).json({ message: "Section not found" });
+    }
+
     res.json(updatedSection);
   } catch (err) {
+    // Final safeguard: handle MongoDB E11000
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "Duplicate section name and grade combination." });
+    }
     res.status(400).json({ message: err.message });
   }
 };
+
+
+
+
+exports.removeStudentFromSection = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const student = await Student.findById(studentId);
+    if (!student) return res.status(404).json({ message: "Student not found" });
+
+    student.sectionID = null; // or remove the student entirely if needed
+    await student.save();
+
+    res.json({ message: "Student removed from section" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to remove student", error: err.message });
+  }
+};
+
+exports.addStudentToSection = async (req, res) => {
+  try {
+    const { sectionId } = req.params;
+    const data = req.body;
+
+    const student = new Student({
+      ...data,
+      sectionID: sectionId,
+      dateEnrolled: new Date(), // or from req.body
+      isActive: true,
+      role: "Student"
+    });
+
+    await student.save();
+    res.status(201).json(student);
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ error: "Email already exists." });
+    }    
+    res.status(400).json({ message: "Failed to add student", error: err.message });
+  }
+};
+
 
