@@ -4,12 +4,12 @@ const Setting = require("../models/settingModel"); // adjust path based on your 
 exports.getSettings = async (req, res) => {
   try {
     const settings = await Setting.findOne(); // Fetch the single settings document
-    if (!settings) return res.status(404).json({ message: "Settings not found" });
-    res.status(200).json(settings);
+    res.status(200).json(settings || {}); // Return settings or an empty object
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 // Create new settings (only if no settings exist yet)
 exports.createSettings = async (req, res) => {
