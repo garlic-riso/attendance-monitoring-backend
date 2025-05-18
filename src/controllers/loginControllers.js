@@ -8,6 +8,21 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
+exports.test = async (req, res) => {
+  const User = require("./models/userModel"); // adjust path if needed
+
+  try {
+    const newUser = await User.create({
+      firstName: "Janelle",
+      lastName: "Domingo",
+      email: "janelle@smis.edu.ph",
+    });
+    res.json({ success: true, user: newUser });
+  } catch (err) {
+    res.status(500).json({ message: "Insert error", error: err.message });
+  }
+};
+
 exports.googleLogin = async (req, res) => {
     const { token } = req.body;
   
