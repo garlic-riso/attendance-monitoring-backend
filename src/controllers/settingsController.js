@@ -30,13 +30,14 @@ exports.updateSettings = async (req, res) => {
   try {
     const updatedSetting = await Setting.findOneAndUpdate({}, req.body, {
       new: true,
+      upsert: true,
     });
-    if (!updatedSetting) return res.status(404).json({ message: "Settings not found" });
     res.json(updatedSetting);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
+
 
 // (Optional) Delete settings
 exports.deleteSettings = async (req, res) => {
