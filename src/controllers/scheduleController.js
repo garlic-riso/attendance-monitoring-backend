@@ -103,38 +103,72 @@ module.exports = {
         return res.status(400).json({ message: "Inactive or missing section." });
       }
   
+      // Prepare teacher full names for matching
+      const formattedTeachers = teachers.map(t => ({
+        ...t,
+        fullName: `${t.firstName || ""} ${t.middleName || ""} ${t.lastName || ""}`.replace(/\s+/g, " ").trim().toLowerCase()
+      }));
+  
       let successCount = 0;
       let errorCount = 0;
+      const skipped = [];
   
       for (const r of schedules) {
         try {
-          const teacher = teachers.find(t => t.name.trim() === r.Teacher?.trim());
-          const subject = subjects.find(s => s.subjectName.trim() === r.Subject?.trim());
+          const teacherName = r.Teacher?.trim().toLowerCase();
+          const subjectName = r.Subject?.trim();
   
-          if (!teacher || !subject || !teacher.isActive) {
+          if (!teacherName || !subjectName) {
+            skipped.push({ record: r, reason: "Missing Teacher or Subject" });
             errorCount++;
             continue;
           }
   
-          const startTime = convertTo24HourFormat(r["Start Time"]);
-          const endTime = convertTo24HourFormat(r["End Time"]);
+          const teacher = formattedTeachers.find(t => t.fullName === teacherName);
+          const subject = subjects.find(s => s.subjectName.trim() === subjectName);
   
-          // Check for overlapping schedules
-          // This checks for: Room conflicts, Teacher double-booking,
-          // Section time collisions (across all sections),
-          // All within the same academicYear and quarter
+          if (!teacher) {
+            skipped.push({ record: r, reason: "Teacher not found" });
+            errorCount++;
+            continue;
+          }
+          if (!teacher.isActive) {
+            skipped.push({ record: r, reason: "Teacher is inactive" });
+            errorCount++;
+            continue;
+          }
+          if (!subject) {
+            skipped.push({ record: r, reason: "Subject not found" });
+            errorCount++;
+            continue;
+          }
+  
+          const rawStart = r["Start Time"];
+          const rawEnd = r["End Time"];
+          if (!rawStart || !rawEnd || !rawStart.includes(":") || !rawEnd.includes(":")) {
+            skipped.push({ record: r, reason: "Invalid or missing time format" });
+            errorCount++;
+            continue;
+          }
+  
+          const startTime = convertTo24HourFormat(rawStart);
+          const endTime = convertTo24HourFormat(rawEnd);
+          const week = r.Day;
+          const room = r.Room;
+  
           const overlapFilter = {
             academicYear,
             quarter,
             $or: [
               { sectionID, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
               { room, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } },
-              { teacherID, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } }
+              { teacherID: teacher._id, week, startTime: { $lt: endTime }, endTime: { $gt: startTime } }
             ]
           };
   
           const conflict = await checkOverlappingSchedule(overlapFilter);
           if (conflict) {
+            skipped.push({ record: r, reason: "Schedule conflict detected" });
             errorCount++;
             continue;
           }
@@ -147,23 +181,27 @@ module.exports = {
             teacherID: teacher._id,
             startTime,
             endTime,
-            week: r.Day,
+            week,
             classMode: r["Class Mode"],
-            room: r.Room,
+            room,
           });
   
           successCount++;
-        } catch {
+        } catch (e) {
+          console.error("Unexpected import error for:", r, "\nError:", e);
+          skipped.push({ record: r, reason: "Unexpected error during processing" });
           errorCount++;
         }
       }
   
-      return res.status(200).json({ successCount, errorCount });
+      return res.status(200).json({ successCount, errorCount, skipped });
     } catch (error) {
       console.error("Import error:", error);
       return res.status(500).json({ message: "Failed to import schedules", error: error.message });
     }
   },
+  
+  
 
   // Update a schedule
   updateSchedule: async (req, res) => {
