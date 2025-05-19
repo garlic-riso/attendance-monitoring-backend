@@ -20,9 +20,20 @@ exports.getParents = async (req, res) => {
 // Create a new parent
 exports.createParent = async (req, res) => {
   try {
-    const newParent = new Parent(req.body);
-    await newParent.save();
-    res.status(201).json(newParent);
+    const { firstName, middleName, lastName, emailAddress } = req.body;
+    const existing = await Parent.findOne({
+      $or: [
+        { emailAddress },
+        { firstName, middleName, lastName }
+      ]
+    });
+    if (existing) {
+      return res.status(400).json({ message: "Duplicate parent (name or email) exists." });
+    }
+
+    const parent = new Parent(req.body);
+    await parent.save();
+    res.status(201).json(parent);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
@@ -33,21 +44,35 @@ exports.bulkImportParents = async (req, res) => {
   const errors = [];
 
   for (let i = 0; i < records.length; i++) {
-    const { firstName, lastName, emailAddress, contactNumber } = records[i];
+    const { firstName, middleName, lastName, emailAddress, contactNumber } = records[i];
     if (!firstName || !lastName || !emailAddress || !contactNumber) {
       errors.push("Missing required fields.");
       continue;
     }
-    const contact = String(records[i].contactNumber).padStart(11, "0");
+
+    const contact = String(contactNumber).padStart(11, "0");
+
+    const exists = await Parent.findOne({
+      $or: [
+        { emailAddress },
+        { firstName, middleName, lastName }
+      ]
+    });
+
+    if (exists) {
+      errors.push("Duplicate parent (name or email) exists.");
+      continue;
+    }
 
     try {
-      const newParent = new Parent({
+      const parent = new Parent({
         firstName,
+        middleName,
         lastName,
         emailAddress,
         contactNumber: contact,
       });
-      await newParent.save();
+      await parent.save();
     } catch (err) {
       errors.push(err.message || "Validation failed.");
     }
@@ -61,9 +86,22 @@ exports.bulkImportParents = async (req, res) => {
 };
 
 
+
+
 // Update an existing parent
 exports.updateParent = async (req, res) => {
   try {
+    const { firstName, middleName, lastName, emailAddress } = req.body;
+    const existing = await Parent.findOne({
+      _id: { $ne: req.params.id },
+      $or: [
+        { emailAddress },
+        { firstName, middleName, lastName }
+      ]
+    });
+    if (existing) {
+      return res.status(400).json({ message: "Duplicate parent (name or email) exists." });
+    }
     const updatedParent = await Parent.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });

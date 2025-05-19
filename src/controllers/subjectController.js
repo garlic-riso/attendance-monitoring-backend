@@ -12,6 +12,11 @@ module.exports = {
         isActive,
       });
 
+      const existing = await Subject.findOne({ subjectName, gradeLevel });
+      if (existing) {
+        return res.status(400).json({ message: 'Duplicate subject already exists.' });
+      }
+
       await newSubject.save();
 
       res.status(201).json({
@@ -57,6 +62,7 @@ module.exports = {
         subjectsToInsert.push({
           subjectName,
           gradeLevel,
+          isActive: true,
         });
       }
   
@@ -114,6 +120,11 @@ module.exports = {
     try {
       const { id } = req.params;
       const { subjectName, gradeLevel, isActive } = req.body;
+
+      const existing = await Subject.findOne({ subjectName, gradeLevel, _id: { $ne: id } });
+      if (existing) {
+        return res.status(400).json({ message: 'A subject with the same name and grade level already exists.' });
+      }
   
       const updatedSubject = await Subject.findByIdAndUpdate(
         id,

@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const Student = require("../models/studentModel");
+const Parent = require("../models/parentModel");
+const Section = require("../models/sectionModel");
 
 exports.getStudents = async (req, res) => {
   try {
@@ -68,16 +70,37 @@ exports.getStudentsByParent = async (req, res) => {
 // Create a new student
 exports.createStudent = async (req, res) => {
   try {
+    const { firstName, middleName = "", lastName, emailAddress } = req.body;
+
+    const existingStudent = await Student.findOne({
+      $or: [
+        {
+          firstName: firstName.trim(),
+          middleName: middleName.trim(),
+          lastName: lastName.trim(),
+        },
+        { emailAddress: emailAddress.trim() },
+      ],
+    });
+
+    if (existingStudent) {
+      return res.status(400).json({
+        message: "A student with the same name or email already exists.",
+      });
+    }
+
     const newStudent = new Student({
       ...req.body,
-      isActive: req.body.isActive ?? true
+      isActive: req.body.isActive ?? true,
     });
+
     await newStudent.save();
     res.status(201).json(newStudent);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
+
 
 // PUT /api/students/:id/assign
 exports.assignSection = async (req, res) => {
@@ -114,44 +137,104 @@ exports.bulkImportStudents = async (req, res) => {
       "emailAddress",
       "gender",
       "program",
-      "isActive",
       "dateEnrolled",
-      "parentID",
-      "sectionID"
+      "parentFirstName",
+      "parentLastName",
+      "sectionName",
+      "grade"
     ];
+    
 
     const invalidRows = [];
+    const skippedDuplicates = [];
+    const errorRecords = [];
+    const uniqueStudents = [];
 
-    students.forEach((student, index) => {
+    for (let i = 0; i < students.length; i++) {
+      const student = students[i];
       const keys = Object.keys(student);
-      const missing = requiredFields.filter((field) => !keys.includes(field));
+      const missing = requiredFields.filter(field => !keys.includes(field));
       if (missing.length > 0) {
-        invalidRows.push({ row: index + 1, missingFields: missing });
+        invalidRows.push({ row: i + 1, missingFields: missing });
+        continue;
       }
-    });
+
+      const duplicate = await Student.findOne({
+        $or: [
+          {
+            firstName: student.firstName.trim(),
+            middleName: (student.parentMiddleName || "").trim(),
+            lastName: student.lastName.trim(),
+          },
+          {
+            emailAddress: student.emailAddress.trim(),
+          }
+        ]
+      });
+
+      if (duplicate) {
+        skippedDuplicates.push({ row: i + 1, reason: "Duplicate student" });
+        continue;
+      }
+
+      const parentQuery = {
+        firstName: student.parentFirstName?.trim(),
+        lastName: student.parentLastName?.trim(),
+      };
+      
+      if (student.parentMiddleName !== undefined) {
+        parentQuery.middleName = student.parentMiddleName?.trim() || "";
+      }
+      
+      const parent = await Parent.findOne(parentQuery);
+
+      if (!parent) {
+        errorRecords.push({ row: i + 1, reason: "Parent not found" });
+        continue;
+      }
+
+      const section = await Section.findOne({
+        name: student.sectionName.trim(),
+        grade: Number(student.grade),
+      });
+
+      if (!section) {
+        errorRecords.push({ row: i + 1, reason: "Section not found" });
+        continue;
+      }
+
+      uniqueStudents.push({
+        ...student,
+        parentID: parent._id,
+        sectionID: section._id,
+        isActive: student.isActive ?? true,
+        dateEnrolled: typeof student.dateEnrolled === "number"
+          ? new Date((student.dateEnrolled - 25569) * 86400 * 1000) // Excel serial to JS date
+          : new Date(student.dateEnrolled),
+      });
+      
+    }
 
     if (invalidRows.length > 0) {
       return res.status(400).json({
-        message: "Invalid column names or missing fields in some rows.",
+        message: "Missing fields in some rows.",
         errors: invalidRows,
       });
     }
 
-    const formattedStudents = students.map((student) => ({
-      ...student,
-      isActive: student.isActive ?? true,
-      parentID: new mongoose.Types.ObjectId(student.parentID),
-      sectionID: new mongoose.Types.ObjectId(student.sectionID),
-    }));
+    const result = await Student.insertMany(uniqueStudents);
 
-    const result = await Student.insertMany(formattedStudents);
-    res.status(201).json({ message: "Bulk import successful", insertedCount: result.length });
+    res.status(201).json({
+      message: "Bulk import completed.",
+      insertedCount: result.length,
+      skippedDuplicates,
+      errorRecords,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Bulk import failed", error: err.message });
   }
 };
-
 
 
 // Update an existing student
