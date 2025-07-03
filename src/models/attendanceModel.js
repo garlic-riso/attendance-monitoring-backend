@@ -29,11 +29,16 @@ const attendanceSchema = new mongoose.Schema({
     default: null,
   },
   excuseLetter: {
-    type: String, // Assuming this stores a file path or URL
+    type: String,
     default: null,
   },
   date: {
     type: Date,
+    required: true,
+  },
+  classMode: {
+    type: String,
+    enum: ["Online", "Face-to-Face", "Homeschooling"],
     required: true,
   },
 }, {

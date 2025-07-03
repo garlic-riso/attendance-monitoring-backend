@@ -4,6 +4,7 @@
         "body-parser": "^1.x",
         "cors": "^2.8.5",
         "dotenv": "^16.x",
+        "exceljs": "^4.4.0",
         "express": "^4.21.2",
         "google-auth-library": "^9.15.1",
         "jsonwebtoken": "^9.0.2",
